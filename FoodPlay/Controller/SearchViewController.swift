@@ -54,8 +54,22 @@ class SearchViewController: UIViewController {
     }
     
     @IBAction func searchButtonPressed(_ sender: Any) {
-        //let food = foodInput.text
-        //getRecipeIds(params: food!)
+        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .alert)
+        
+        if(foodInput.text?.isEmpty)!{
+            alert.message = "Search field cannot be empty"
+            alert.addAction(UIAlertAction(title: "Back", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+        }
+        if(!Connectivity.isConnectedToInternet()){
+            alert.title = "Network Issues"
+            alert.message = "Try again when internet connection is available"
+            alert.addAction(UIAlertAction(title: "Ok", style: .cancel, handler: nil))
+            self.present(alert, animated: true)
+        }
+        else{
+            performSegue(withIdentifier: "toRecipeList", sender: self)
+        }
     }
     
     func getRecipeData(id: Int){
@@ -64,7 +78,7 @@ class SearchViewController: UIViewController {
                 if response.result.isSuccess {
                     print("Sucess! Got the recipe data")
                     let recipeJSON : JSON = JSON(response.result.value!)
-                    print(recipeJSON)
+                   
                     self.recipeData.body = recipeJSON["instructions"].stringValue
                     self.recipeData.cookTime = recipeJSON["readyInMinutes"].intValue
                     self.recipeData.servings = recipeJSON["servings"].intValue

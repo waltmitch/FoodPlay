@@ -37,22 +37,13 @@ class RecipeListViewController: UITableViewController {
         //removing default separator lines
         recipeListTableView.separatorStyle = .none
         
-        
         getRecipeIds(userInput: searchInputFromUser)
     }
     
     //TableView methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-       
-        print(self.recipeList[indexPath.row].id)
         tableView.deselectRow(at: indexPath, animated: true)
-        
-        //logic for segue to searchView
-        let destVC = storyboard?.instantiateInitialViewController() as! SearchViewController
-        destVC.userSelectionId = self.recipeList[indexPath.row].id
-        present(destVC, animated: true, completion: nil)
-        
-        
+        toSearchView(recipeIdToSend: self.recipeList[indexPath.row].id)
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -72,9 +63,7 @@ class RecipeListViewController: UITableViewController {
         let imageUrlString = ("\(BASE_URL)\(recipe.imageUrl)")
         let imageUrl: URL = URL(string: imageUrlString)!
         cell.recipeImage.load(url: imageUrl)
-        
        // cell.backgroundColor = UIColor.clear
-       
         return cell
     }
     
@@ -97,32 +86,24 @@ class RecipeListViewController: UITableViewController {
     }
     
     func getRecipeIds(userInput: String){
-        Alamofire.request("https://spoonacular-recipe-food-nutrition-v1.p.mashape.com/recipes/search?query=\(userInput)", headers: headers).responseJSON { response in
+        let input = cleanInput(userInput: userInput)
+        print(input)
+        Alamofire.request("https://spoonacular-recipe-food-nutrition-v1.p.mashape.com/recipes/search?query=\(input)", headers: headers).responseJSON { response in
+            
             if response.result.isSuccess {
-                print("Sucess! Got the recipe id")
+                print("Sucess! Got recipe data!")
                 let json: JSON = JSON(response.result.value!)
-                self.setRecipeList(input: json)
-                //                let recipeId = json["results"][0]["id"].intValue
-                //                print(recipeId)
-                //*****
-               
-                //*****
                 
-                //                if(recipeId != 0){
-                //                    self.recipeData.id = recipeId
-                //                    self.getRecipeData(id: self.recipeData.id)
-                //                }
-                //                else{
-                //                    self.recipeTitleField.text = nil
-                //                    self.recipeImageView.image = nil
-                //                    self.recipeCookTimeLabel.text = nil
-                //                    self.recipeServingsLabel.text = nil
-                //                    self.recipeBodyField.text = nil
-                //
-                //                    let alert = UIAlertController(title: "Sorry! We can't find a recipe for that", message: "Ensure there's no typos, numbers, or special characters entered", preferredStyle: .alert)
-                //                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: nil))
-                //                    self.present(alert, animated: true)
-                //                }
+                if(json.isEmpty || json["totalResults"].intValue == 0){
+                    let alert = UIAlertController(title: "Sorry! We can't find a recipe for that", message: "Ensure there's no typos, numbers, or special characters entered", preferredStyle: .alert)
+
+                    alert.addAction(UIAlertAction(title: "Try again", style: .cancel, handler: { action in
+                        self.toSearchView(recipeIdToSend: 0) }))
+                    self.present(alert, animated: true)
+                }
+                else{
+                    self.setRecipeList(input: json)
+                }
             }
             else {
                 print("Error \(response.result.error!)")
@@ -134,6 +115,24 @@ class RecipeListViewController: UITableViewController {
     func configureTableView() {
         self.tableView.rowHeight = 90
         self.tableView.backgroundColor = UIColor.lightGray
+    }
+    
+    func toSearchView(recipeIdToSend: Int){
+        let destVC = storyboard?.instantiateInitialViewController() as! SearchViewController
+        destVC.userSelectionId = recipeIdToSend
+        present(destVC, animated: true, completion: nil)
+    }
+    
+    func cleanInput(userInput: String) -> String{
+        var finalResult = userInput
+        let whiteSpace = " "
+        let hasWhiteSpace = userInput.contains(whiteSpace)
+        
+        if (hasWhiteSpace){
+            finalResult = userInput.replacingOccurrences(of: whiteSpace, with: "+")
+        }
+        
+        return finalResult
     }
     
 }
